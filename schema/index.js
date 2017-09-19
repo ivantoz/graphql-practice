@@ -1,5 +1,4 @@
-//import type helpers from graphql-js
-
+// Import type helpers from graphql-js
 const {
   GraphQLSchema,
   GraphQLObjectType,
@@ -7,36 +6,41 @@ const {
   GraphQLNonNull
 } = require('graphql');
 
-const pgdb = require('../database/pgdb');
-
-const MeType = require('./types/me');
+const UserType = require('./types/user');
 
 // The root query type is where in the data graph
 // we can start asking questions
-
 const RootQueryType = new GraphQLObjectType({
-  name: 'RootQueryType',
+  name: 'RootQuery',
+
   fields: {
     me: {
-      type: MeType,
-      description: 'The *current user* identified by an api key',
+      type: UserType,
+      description: 'The current user identified by an api key',
       args: {
-        key: { type: new GraphQLNonNull(GraphQLString)}
+        key: { type: new GraphQLNonNull(GraphQLString) }
       },
-      resolve: (obj, args, { pgPool }) => {
-        return pgdb(pgPool).getUser(args.key);
-
+      resolve: (obj, args, { loaders }) => {
+        return loaders.usersByApiKeys.load(args.key)
       }
     }
-
   }
-
 });
 
-const ncShema = new GraphQLSchema ({
-  query: RootQueryType
-  //mutation: ...
+const AddContestMutation = require('./mutation/add-contest');
 
+const RootMutationType = new GraphQLObjectType({
+  name: 'RootMutationType',
+
+  fields: () => ({
+    AddContest: AddContestMutation,
+    // AddName: AddNameMutation
+  })
+})
+
+const ncSchema = new GraphQLSchema({
+  query: RootQueryType,
+  mutation: RootMutationType
 });
 
-module.exports = ncShema;
+module.exports = ncSchema;
